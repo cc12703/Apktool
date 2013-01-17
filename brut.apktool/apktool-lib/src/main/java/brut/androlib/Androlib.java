@@ -32,6 +32,7 @@ import java.io.*;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.logging.Logger;
 import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.Yaml;
@@ -130,6 +131,38 @@ public class Androlib {
             throw new AndrolibException(ex);
         }
     }
+    
+    
+    private boolean isAPKFileNames(String file) {
+    	for(String apkFile : APK_ALL_FILENAMES) {
+    		if(apkFile.equals(file))
+    			return true;
+    	}
+    	return false;
+    }
+    
+    public void decodeExtFiles(ExtFile apkFile, File outDir) 
+    		throws AndrolibException {
+    	LOGGER.info("Copying other files/dirs");
+    	File extOutDir = new File(outDir, EXT_DIRNAME);
+    	extOutDir.mkdir();
+    	try {
+    		Directory in = apkFile.getDirectory();
+    		Set<String> files = in.getFiles();
+    		for(String file : files) {
+    			if(!isAPKFileNames(file))
+    				in.copyToDir(extOutDir, file);
+    		}
+    		Map<String, Directory> dirs = in.getDirs();
+    		for(String dir : dirs.keySet()) {
+    			if(!isAPKFileNames(dir))
+    				in.copyToDir(extOutDir, dir);
+    		}
+    	} catch (DirectoryException ex) {
+            throw new AndrolibException(ex);
+        }
+    	
+    }
 
     public void writeMetaFile(File mOutDir, Map<String, Object> meta)
             throws AndrolibException {
@@ -176,6 +209,31 @@ public class Androlib {
         build(new ExtFile(appDir), outFile, flags, origApk, aaptPath);
     }
 
+    
+    private void buildExtData(ExtFile appDir, File outFile) 
+    					throws AndrolibException {
+    	File extDir = new File(appDir, EXT_DIRNAME);
+    	if(!extDir.exists())
+    		return;
+    	
+    	Directory dir;
+		try {
+			dir = new FileDirectory(extDir);
+		} catch (DirectoryException e) {
+			throw new AndrolibException(e);
+		}
+    	
+//    	for(String path : dir.getDirs(true).keySet()) {
+//    		LOGGER.info("ext data path = " + path);
+//    		mAndRes.aaptAddFile(outFile, path + File.separator, extDir);
+//    	}
+    	
+    	for(String file : dir.getFiles(true)) {
+    		LOGGER.info("ext data file = " + file);
+    		mAndRes.aaptAddFile(outFile, file, extDir);
+    	}
+    	
+    }
     public void build(ExtFile appDir, File outFile, 
             HashMap<String, Boolean> flags, ExtFile origApk, String aaptPath) throws BrutException {
     	
@@ -207,6 +265,7 @@ public class Androlib {
             (Map<String, Object>) meta.get("usesFramework"));
         buildLib(appDir, flags);
         buildApk(appDir, outFile,flags);
+        buildExtData(appDir, outFile);
     }
 
     public void buildSources(File appDir,  HashMap<String, Boolean> flags)
@@ -574,6 +633,7 @@ public class Androlib {
 
     private final static String SMALI_DIRNAME = "smali";
     private final static String APK_DIRNAME = "build/apk";
+    private final static String EXT_DIRNAME = "extData/";
     private final static String[] APK_RESOURCES_FILENAMES =
         new String[]{"resources.arsc", "AndroidManifest.xml", "res"};
     private final static String[] APK_RESOURCES_WITHOUT_RES_FILENAMES =
@@ -582,4 +642,7 @@ public class Androlib {
         new String[]{"AndroidManifest.xml", "res"};
     private final static String[] APK_MANIFEST_FILENAMES =
         new String[]{"AndroidManifest.xml"};
+    private final static String[] APK_ALL_FILENAMES = 
+    	new String[] {"classes.dex","AndroidManifest.xml","resources.arsc",
+    				  "res","lib","assets","META-INF"};
 }

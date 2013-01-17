@@ -51,6 +51,8 @@ import org.apache.commons.io.IOUtils;
 import org.xml.sax.SAXException;
 import org.xmlpull.v1.XmlSerializer;
 
+import org.apache.commons.io.FilenameUtils;
+
 /**
  * @author Ryszard Wiśniewski <brut.alll@gmail.com>
  */
@@ -264,6 +266,22 @@ final public class AndrolibResources {
 		}
 	}
 
+    public void aaptAddFile(File apkFile, String relaAdd, File root) 
+    										throws AndrolibException {
+    	List<String> cmd = new ArrayList<String>();
+    	
+    	cmd.add("aapt");
+    	cmd.add("a");
+    	
+    	cmd.add(apkFile.getAbsolutePath());
+    	cmd.add(relaAdd);
+    	
+    	try {
+            OS.exec(cmd.toArray(new String[0]), root);
+        } catch (BrutException ex) {
+            throw new AndrolibException(ex);
+        }
+    }
 	public void aaptPackage(File apkFile, File manifest, File resDir,
 			File rawDir, File assetDir, File[] include,
 			HashMap<String, Boolean> flags, String aaptPath) throws AndrolibException {

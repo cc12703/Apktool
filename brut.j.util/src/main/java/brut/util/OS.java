@@ -77,6 +77,29 @@ public class OS {
     public static void cpdir(String src, String dest) throws BrutException {
         cpdir(new File(src), new File(dest));
     }
+    
+
+    public static void exec(String[] cmd, File dir) throws BrutException {
+    	Process ps = null;
+        try {
+            ps = Runtime.getRuntime().exec(cmd, null, dir);
+
+            new StreamForwarder(ps.getInputStream(), System.err).start();
+            new StreamForwarder(ps.getErrorStream(), System.err).start();
+            if (ps.waitFor() != 0) {
+                throw new BrutException(
+                    "could not exec command: " + Arrays.toString(cmd));
+            }
+        } catch (IOException ex) {
+            throw new BrutException(
+                "could not exec command: " + Arrays.toString(cmd), ex);
+        } catch (InterruptedException ex) {
+            throw new BrutException(
+                "could not exec command: " + Arrays.toString(cmd), ex);
+        }
+    }
+  
+    
 
     public static void exec(String[] cmd) throws BrutException {
         Process ps = null;
