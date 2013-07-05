@@ -1,8 +1,24 @@
-v1.5.2 (TBA)
+v1.5.3 (TBA)
+-Updated to smali/baksmali to v1.4.2
+-Fixed (issue #396) - Correctly handle android:debuggable while in debug mode.
+-Fixed (issue #340) - Fixed superclass errors on debug mode.
+-Updated to Gradle 1.4
+-Updated known bytes for configurations to 38 (from addition of layout direction)
+-Fixed NPE when handling odex apks even with --no-src specified. (Thanks Rodrigo Chiossi)
+-Fixed (issue #427) - Correctly handles `--frame-path` on [b]uild
+
+v1.5.2 (Released February 2 - 2013) Codename: Bug Fixes
 -Fixed (issue #299) - output smali filename errors to screen during rebuild instead of filestream
 -Only show the --aapt / -a info in verbose mode.
 -Fixed (issue #392) - Don't crash out if .git folder isn't present. Use SNAPSHOT-DEV instead.
 -Fixed (issue #67) - Only store compressed resources.arsc if original was compressed, otherwise STORE.
+-Moved build.gradle files to each sub-project, more organization :)
+-Fixed (issue #394) - Prevented duplicated files in final jar which saved around 1.2mb.
+-Added Proguard to drop final jar size from 6.2mb to 2.6mb.
+-Fixed (issue #395) - Added check for "aapt" in unit-tests.
+-Added ability to use "--frame-path" on [if|install-framework]
+-Fixed renaming of ".r.9.png" images -> ".9.png".
+-Added ability to use --version to print out Apktool version
 
 v1.5.1 PR3 (Released December 23 - 2012) Codename: Pre Release 3
 -Reverted "Prevents removal of <uses-sdk> on decompile, but then throws warning on rebuild (issue #366)"

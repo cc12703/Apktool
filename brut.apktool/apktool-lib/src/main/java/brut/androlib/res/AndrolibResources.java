@@ -38,6 +38,7 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerConfigurationException;
 import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
@@ -46,6 +47,7 @@ import javax.xml.transform.stream.StreamResult;
 import org.w3c.dom.Document;
 import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
 
 import org.apache.commons.io.IOUtils;
 import org.xml.sax.SAXException;
@@ -86,7 +88,7 @@ final public class AndrolibResources {
 				LOGGER.warning("Skipping \"android\" package group");
 				pkg = pkgs[1];
 			} else if (pkgs[0].getName().equals("com.htc")) {
-				LOGGER.warning("Skipping \"htc\" stupid package group");
+				LOGGER.warning("Skipping \"htc\" package group");
 				pkg = pkgs[1];
 			}
 			break;
@@ -147,23 +149,69 @@ final public class AndrolibResources {
 			LOGGER.info("Decoding AndroidManifest.xml with only framework resources...");
 			fileDecoder.decodeManifest(inApk, "AndroidManifest.xml", out,
 					"AndroidManifest.xml");
-			
+
 		} catch (DirectoryException ex) {
 			throw new AndrolibException(ex);
 		}
 	}
-	
-	public void adjust_package_manifest(ResTable resTable, String filePath) 
+
+	public void remove_application_debug(String filePath)
+		throws AndrolibException {
+		
+		// change application:debug to true
+		try {
+			DocumentBuilderFactory docFactory = DocumentBuilderFactory
+					.newInstance();
+			DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
+			Document doc = docBuilder.parse(filePath.toString());
+		
+			Node application = doc.getElementById("application");
+			
+			// load attr
+			NamedNodeMap attr = application.getAttributes();
+			Node debugAttr = attr.getNamedItem("debug");
+			
+			// remove application:debug
+			if (debugAttr != null) {
+				attr.removeNamedItem("debug");
+			}
+			
+			// save manifest
+			TransformerFactory transformerFactory = TransformerFactory
+					.newInstance();
+			Transformer transformer = transformerFactory.newTransformer();
+			DOMSource source = new DOMSource(doc);
+			StreamResult result = new StreamResult(new File(filePath));
+			transformer.transform(source, result);
+		
+		} catch (ParserConfigurationException ex) {
+			throw new AndrolibException(ex);
+		} catch (SAXException ex) {
+			throw new AndrolibException(ex);
+		} catch (IOException ex) {
+			throw new AndrolibException(ex);
+		} catch (TransformerConfigurationException ex) {
+			throw new AndrolibException(ex);
+		} catch (TransformerException ex) {
+			throw new AndrolibException(ex);
+		}
+	}
+
+	public void adjust_package_manifest(ResTable resTable, String filePath)
 			throws AndrolibException {
 
-		// check if packages different, and that package is not equal to "android"
+		// check if packages different, and that package is not equal to
+		// "android"
 		Map<String, String> packageInfo = resTable.getPackageInfo();
-		if ((packageInfo.get("cur_package").equalsIgnoreCase(packageInfo.get("orig_package")) 
-				|| ("android".equalsIgnoreCase(packageInfo.get("cur_package"))))) {
-				LOGGER.info("Regular manifest package...");
-		} else {	
+		if ((packageInfo.get("cur_package").equalsIgnoreCase(
+				packageInfo.get("orig_package")) || ("android"
+				.equalsIgnoreCase(packageInfo.get("cur_package")) || ("com.htc"
+				.equalsIgnoreCase(packageInfo.get("cur_package")))))) {
+
+			LOGGER.info("Regular manifest package...");
+		} else {
 			try {
-				
+
 				LOGGER.info("Renamed manifest package found! Fixing...");
 				DocumentBuilderFactory docFactory = DocumentBuilderFactory
 						.newInstance();
@@ -178,15 +226,15 @@ final public class AndrolibResources {
 				Node nodeAttr = attr.getNamedItem("package");
 				mPackageRenamed = nodeAttr.getNodeValue();
 				nodeAttr.setNodeValue(packageInfo.get("cur_package"));
-				
+
 				// re-save manifest.
-				// fancy an auto-sort :p
-				TransformerFactory transformerFactory = TransformerFactory.newInstance();
+				TransformerFactory transformerFactory = TransformerFactory
+						.newInstance();
 				Transformer transformer = transformerFactory.newTransformer();
 				DOMSource source = new DOMSource(doc);
 				StreamResult result = new StreamResult(new File(filePath));
 				transformer.transform(source, result);
-				
+
 			} catch (ParserConfigurationException ex) {
 				throw new AndrolibException(ex);
 			} catch (TransformerException ex) {
@@ -217,9 +265,10 @@ final public class AndrolibResources {
 
 			fileDecoder.decodeManifest(inApk, "AndroidManifest.xml", out,
 					"AndroidManifest.xml");
-			
+
 			// fix package if needed
-			adjust_package_manifest(resTable, outDir.getAbsolutePath() + "/AndroidManifest.xml");
+			adjust_package_manifest(resTable, outDir.getAbsolutePath()
+					+ "/AndroidManifest.xml");
 
 			if (inApk.containsDir("res")) {
 				in = inApk.getDir("res");
@@ -284,19 +333,21 @@ final public class AndrolibResources {
     }
 	public void aaptPackage(File apkFile, File manifest, File resDir,
 			File rawDir, File assetDir, File[] include,
-			HashMap<String, Boolean> flags, String aaptPath) throws AndrolibException {
+			HashMap<String, Boolean> flags, String aaptPath)
+			throws AndrolibException {
 
 		List<String> cmd = new ArrayList<String>();
-		
+
 		// path for aapt binary
 		if (!aaptPath.isEmpty()) {
 			File aaptFile = new File(aaptPath);
 			if (aaptFile.canRead() && aaptFile.exists()) {
 				aaptFile.setExecutable(true);
 				cmd.add(aaptFile.getPath());
-				
+
 				if (flags.get("verbose")) {
-					LOGGER.info(aaptFile.getPath() + " being used as aapt location.");
+					LOGGER.info(aaptFile.getPath()
+							+ " being used as aapt location.");
 				}
 			} else {
 				LOGGER.warning("aapt location could not be found. Defaulting back to default");
@@ -339,10 +390,10 @@ final public class AndrolibResources {
 		if (flags.get("framework")) {
 			cmd.add("-x");
 		}
-		
+
 		if (!(flags.get("compression"))) {
-			 cmd.add("-0");
-			 cmd.add("arsc");
+			cmd.add("-0");
+			cmd.add("arsc");
 		}
 
 		if (include != null) {
@@ -436,7 +487,7 @@ final public class AndrolibResources {
 				"    ");
 		serial.setProperty(ExtXmlSerializer.PROPERTY_SERIALIZER_LINE_SEPARATOR,
 				System.getProperty("line.separator"));
-		serial.setProperty(ExtMXSerializer.PROPERTY_DEFAULT_ENCODING, "utf-8");
+		serial.setProperty(ExtXmlSerializer.PROPERTY_DEFAULT_ENCODING, "utf-8");
 		serial.setDisabledAttrEscape(true);
 		return serial;
 	}
@@ -666,17 +717,16 @@ final public class AndrolibResources {
 	private File getFrameworkDir() throws AndrolibException {
 		String path;
 
-		/* if a framework path was specified on the command line, use it */
+		// if a framework path was specified on the command line, use it
 		if (sFrameworkFolder != null) {
 			path = sFrameworkFolder;
 		} else if (System.getProperty("os.name").equals("Mac OS X")) {
-			/* store in user-home, for Mac OS X */
-			path = System.getProperty("user.home") + File.separatorChar
-					+ "Library/apktool/framework";
+			// store in user-home, for Mac OS X
+			path = System.getProperty("user.home") + File.separatorChar + "Library/apktool/framework";
 		} else {
-			path = System.getProperty("user.home") + File.separatorChar
-					+ "apktool" + File.separatorChar + "framework";
+			path = System.getProperty("user.home") + File.separatorChar + "apktool" + File.separatorChar + "framework";
 		}
+		
 		File dir = new File(path);
 		if (!dir.exists()) {
 			if (!dir.mkdirs()) {
@@ -697,6 +747,10 @@ final public class AndrolibResources {
 		} catch (BrutException ex) {
 			throw new AndrolibException(ex);
 		}
+	}
+
+	public void setFrameworkFolder(String path) {
+		sFrameworkFolder = path;
 	}
 
 	// TODO: dirty static hack. I have to refactor decoding mechanisms.

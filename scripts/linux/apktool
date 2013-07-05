@@ -14,12 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# As per the Apache license requirements, this file has been modified
-# from its original state.
-#
-# Such modifications are Copyright (C) 2010 Ben Gruver, and are released
-# under the original license
-
 # This script is a wrapper for smali.jar, so you can simply call "smali",
 # instead of java -jar smali.jar. It is heavily based on the "dx" script
 # from the Android SDK
@@ -48,7 +42,7 @@ prog="${progdir}"/`basename "${prog}"`
 cd "${oldwd}"
 
 
-jarfile=smali.jar
+jarfile=apktool.jar
 libdir="$progdir"
 if [ ! -r "$libdir/$jarfile" ]
 then
@@ -61,7 +55,7 @@ javaOpts=""
 # If you want DX to have more memory when executing, uncomment the following
 # line and adjust the value accordingly. Use "java -X" for a list of options
 # you can pass here.
-#
+# 
 javaOpts="-Xmx256M"
 
 # Alternatively, this will extract any parameter "-Jxxx" from the command line
@@ -80,4 +74,7 @@ else
 	jarpath="$libdir/$jarfile"
 fi
 
+# add current location to path for aapt
+PATH=$PATH:`pwd`;
+export PATH;
 exec java $javaOpts -jar "$jarpath" "$@"
