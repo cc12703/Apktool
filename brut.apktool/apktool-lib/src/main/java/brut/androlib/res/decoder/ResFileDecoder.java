@@ -71,9 +71,15 @@ public class ResFileDecoder {
                         outFileName = outResName + ".r.9" + ext;
                     }
 
-                    // check for samsung qmg
-                    if (inFileName.toLowerCase().endsWith(".qmg")) {
+                    // check for samsung qmg & spi
+                    if (inFileName.toLowerCase().endsWith(".qmg") || inFileName.toLowerCase().endsWith(".spi")) {
                         copyRaw(inDir, outDir, outFileName);
+                        return;
+                    }
+
+                    // check for xml 9 patches which are just xml files
+                    if (inFileName.toLowerCase().endsWith(".xml")) {
+                        decode(inDir, inFileName, outDir, outFileName, "xml");
                         return;
                     }
 
@@ -100,8 +106,8 @@ public class ResFileDecoder {
         } catch (AndrolibException ex) {
             LOGGER.log(Level.SEVERE, String.format(
                     "Could not decode file, replacing by FALSE value: %s",
-                    inFileName, outFileName), ex);
-            res.replace(new ResBoolValue(false, null));
+                    inFileName), ex);
+            res.replace(new ResBoolValue(false, 0, null));
         }
     }
 

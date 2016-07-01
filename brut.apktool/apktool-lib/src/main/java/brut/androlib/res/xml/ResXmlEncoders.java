@@ -22,17 +22,19 @@ import java.awt.event.KeyEvent;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.commons.lang3.StringUtils;
+
 /**
  * @author Ryszard Wiśniewski <brut.alll@gmail.com>
  */
 public final class ResXmlEncoders {
 
     public static String escapeXmlChars(String str) {
-        return str.replace("&", "&amp;").replace("<", "&lt;");
+        return StringUtils.replace(StringUtils.replace(str, "&", "&amp;"), "<", "&lt;");
     }
 
     public static String encodeAsResXmlAttr(String str) {
-        if (str.isEmpty()) {
+        if (str == null || str.isEmpty()) {
             return str;
         }
 
@@ -70,7 +72,7 @@ public final class ResXmlEncoders {
     }
 
     public static String encodeAsXmlValue(String str) {
-        if (str.isEmpty()) {
+        if (str == null || str.isEmpty()) {
             return str;
         }
 

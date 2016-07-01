@@ -1,4 +1,4 @@
-package brut.androlib; /**
+/**
  *  Copyright 2014 Ryszard Wiśniewski <brut.alll@gmail.com>
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,6 +13,9 @@ package brut.androlib; /**
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
+package brut.androlib;
+
+import java.util.Collection;
 
 public class ApkOptions {
     public boolean forceBuildAll = false;
@@ -22,6 +25,7 @@ public class ApkOptions {
     public boolean updateFiles = false;
     public boolean isFramework = false;
     public boolean resourcesAreCompressed = false;
+    public Collection<String> doNotCompress;
 
     public String frameworkFolderLocation = null;
     public String frameworkTag = null;
