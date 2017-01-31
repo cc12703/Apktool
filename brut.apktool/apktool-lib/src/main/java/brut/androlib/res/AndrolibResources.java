@@ -25,7 +25,7 @@ import brut.androlib.res.data.*;
 import brut.androlib.res.decoder.*;
 import brut.androlib.res.decoder.ARSCDecoder.ARSCData;
 import brut.androlib.res.decoder.ARSCDecoder.FlagsOffset;
-import brut.androlib.res.util.ExtFile;
+import brut.directory.ExtFile;
 import brut.androlib.res.util.ExtMXSerializer;
 import brut.androlib.res.util.ExtXmlSerializer;
 import brut.androlib.res.xml.ResValuesXmlSerializable;
@@ -246,6 +246,9 @@ final public class AndrolibResources {
             if (in == null && inApk.containsDir("r")) {
                 in = inApk.getDir("r");
             }
+            if (in == null && inApk.containsDir("R")) {
+                in = inApk.getDir("R");
+            }
         } catch (DirectoryException ex) {
             throw new AndrolibException(ex);
         }
@@ -387,6 +390,7 @@ final public class AndrolibResources {
             cmd.add("--version-name");
             cmd.add(mVersionName);
         }
+        cmd.add("--no-version-vectors");
         cmd.add("-F");
         cmd.add(apkFile.getAbsolutePath());
 
@@ -588,6 +592,32 @@ final public class AndrolibResources {
         throw new CantFindFrameworkResException(id);
     }
 
+    public void emptyFrameworkDirectory() throws AndrolibException {
+        File dir = getFrameworkDir();
+        File apk;
+
+        apk = new File(dir, "1.apk");
+
+        if (! apk.exists()) {
+            LOGGER.warning("Can't empty framework directory, no file found at: " + apk.getAbsolutePath());
+        } else {
+            try {
+                if (apk.exists() && dir.listFiles().length > 1 && ! apkOptions.forceDeleteFramework) {
+                    LOGGER.warning("More than default framework detected. Please run command with `--force` parameter to wipe framework directory.");
+                } else {
+                    for (File file : dir.listFiles()) {
+                        if (file.isFile() && file.getName().endsWith(".apk")) {
+                            LOGGER.info("Removing " + file.getName() + " framework file...");
+                            file.delete();
+                        }
+                    }
+                }
+            } catch (NullPointerException e) {
+                throw new AndrolibException(e);
+            }
+        }
+    }
+
     public void installFramework(File frameFile) throws AndrolibException {
         installFramework(frameFile, apkOptions.frameworkTag);
     }
@@ -703,8 +733,10 @@ final public class AndrolibResources {
 
             if (OSDetection.isMacOSX()) {
                 path = parentPath.getAbsolutePath() + String.format("%1$sLibrary%1$sapktool%1$sframework", File.separatorChar);
+            } else if (OSDetection.isWindows()) {
+                path = parentPath.getAbsolutePath() + String.format("%1$sAppData%1$sLocal%1$sapktool%1$sframework", File.separatorChar);
             } else {
-                path = parentPath.getAbsolutePath() + String.format("%1$sapktool%1$sframework", File.separatorChar);
+                path = parentPath.getAbsolutePath() + String.format("%1$s.local%1$sshare%1$sapktool%1$sframework", File.separatorChar);
             }
         }
 
@@ -742,9 +774,17 @@ final public class AndrolibResources {
 
         try {
             if (OSDetection.isMacOSX()) {
-                aaptBinary = Jar.getResourceAsFile("/prebuilt/aapt/macosx/aapt");
+                if (OSDetection.is64Bit()) {
+                    aaptBinary = Jar.getResourceAsFile("/prebuilt/aapt/macosx/64/aapt");
+                } else {
+                    aaptBinary = Jar.getResourceAsFile("/prebuilt/aapt/macosx/32/aapt");
+                }
             } else if (OSDetection.isUnix()) {
-                aaptBinary = Jar.getResourceAsFile("/prebuilt/aapt/linux/aapt");
+                if (OSDetection.is64Bit()) {
+                    aaptBinary = Jar.getResourceAsFile("/prebuilt/aapt/linux/64/aapt");
+                } else {
+                    aaptBinary = Jar.getResourceAsFile("/prebuilt/aapt/linux/32/aapt");
+                }
             } else if (OSDetection.isWindows()) {
                 aaptBinary = Jar.getResourceAsFile("/prebuilt/aapt/windows/aapt.exe");
             } else {

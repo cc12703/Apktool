@@ -23,7 +23,7 @@ import brut.androlib.res.data.value.*;
 import brut.util.Duo;
 import brut.androlib.res.data.ResTable;
 import brut.util.ExtDataInput;
-import com.peterfranza.LittleEndianDataInputStream;
+import com.google.common.io.LittleEndianDataInputStream;
 import java.io.*;
 import java.math.BigInteger;
 import java.util.*;
@@ -60,7 +60,10 @@ public class ARSCDecoder {
         } else {
             mFlagsOffsets = null;
         }
-        mIn = new ExtDataInput(new LittleEndianDataInputStream(arscStream));
+        // We need to explicitly cast to DataInput as otherwise the constructor is ambiguous.
+        // We choose DataInput instead of InputStream as ExtDataInput wraps an InputStream in
+        // a DataInputStream which is big-endian and ignores the little-endian behavior.
+        mIn = new ExtDataInput((DataInput) new LittleEndianDataInputStream(arscStream));
         mResTable = resTable;
         mKeepBroken = keepBroken;
     }
@@ -151,6 +154,12 @@ public class ARSCDecoder {
 
         while (type == Header.TYPE_TYPE) {
             readTableType();
+            
+            // skip "TYPE 8 chunks" and/or padding data at the end of this chunk
+            if(mCountIn.getCount() < mHeader.endPosition) {
+                mCountIn.skip(mHeader.endPosition - mCountIn.getCount());
+            }
+            
             type = nextChunk().type;
 
             addMissingResSpecs();
@@ -161,7 +170,7 @@ public class ARSCDecoder {
 
     private ResTypeSpec readSingleTableTypeSpec() throws AndrolibException, IOException {
         checkChunkType(Header.TYPE_SPEC_TYPE);
-        byte id = mIn.readByte();
+        int id = mIn.readUnsignedByte();
         mIn.skipBytes(3);
         int entryCount = mIn.readInt();
 
@@ -177,7 +186,7 @@ public class ARSCDecoder {
 
     private ResType readTableType() throws IOException, AndrolibException {
         checkChunkType(Header.TYPE_TYPE);
-        byte typeId = mIn.readByte();
+        int typeId = mIn.readUnsignedByte();
         if (mResTypeSpecs.containsKey(typeId)) {
             mResId = (0xff000000 & mResId) | mResTypeSpecs.get(typeId).getId() << 16;
             mTypeSpec = mResTypeSpecs.get(typeId);
@@ -372,6 +381,11 @@ public class ARSCDecoder {
             read = 52;
         }
 
+        if (size >= 56) {
+            mIn.skipBytes(4);
+            read = 56;
+        }
+
         int exceedingSize = size - KNOWN_CONFIG_BYTES;
         if (exceedingSize > 0) {
             byte[] buf = new byte[exceedingSize];
@@ -384,8 +398,8 @@ public class ARSCDecoder {
                         .format("Config flags size > %d, but exceeding bytes are all zero, so it should be ok.",
                                 KNOWN_CONFIG_BYTES));
             } else {
-                LOGGER.warning(String.format("Config flags size > %d. Exceeding bytes: 0x%X.",
-                        KNOWN_CONFIG_BYTES, exceedingBI));
+                LOGGER.warning(String.format("Config flags size > %d. Size = %d. Exceeding bytes: 0x%X.",
+                        KNOWN_CONFIG_BYTES, size, exceedingBI));
                 isInvalid = true;
             }
         }
@@ -502,7 +516,7 @@ public class ARSCDecoder {
     private ResType mType;
     private int mResId;
     private boolean[] mMissingResSpecs;
-    private HashMap<Byte, ResTypeSpec> mResTypeSpecs = new HashMap<>();
+    private HashMap<Integer, ResTypeSpec> mResTypeSpecs = new HashMap<>();
 
     private final static short ENTRY_FLAG_COMPLEX = 0x0001;
 
@@ -547,7 +561,7 @@ public class ARSCDecoder {
     }
 
     private static final Logger LOGGER = Logger.getLogger(ARSCDecoder.class.getName());
-    private static final int KNOWN_CONFIG_BYTES = 52;
+    private static final int KNOWN_CONFIG_BYTES = 56;
 
     public static class ARSCData {
 

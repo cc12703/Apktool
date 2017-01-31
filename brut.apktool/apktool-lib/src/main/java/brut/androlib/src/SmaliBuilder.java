@@ -18,14 +18,13 @@ package brut.androlib.src;
 
 import brut.androlib.AndrolibException;
 import brut.androlib.mod.SmaliMod;
-import brut.androlib.res.util.ExtFile;
+import brut.directory.ExtFile;
 import brut.directory.DirectoryException;
 import java.io.*;
-import java.util.List;
 import java.util.logging.Logger;
 
 import org.antlr.runtime.RecognitionException;
-import org.apache.commons.io.IOUtils;
+import org.jf.dexlib2.Opcodes;
 import org.jf.dexlib2.writer.builder.DexBuilder;
 import org.jf.dexlib2.writer.io.FileDataStore;
 
@@ -33,19 +32,28 @@ import org.jf.dexlib2.writer.io.FileDataStore;
  * @author Ryszard Wiśniewski <brut.alll@gmail.com>
  */
 public class SmaliBuilder {
-
-    public static void build(ExtFile smaliDir, File dexFile) throws AndrolibException {
-        new SmaliBuilder(smaliDir, dexFile).build();
+    public static void build(ExtFile smaliDir, File dexFile, int apiLevel) throws AndrolibException {
+        new SmaliBuilder(smaliDir, dexFile, apiLevel).build();
     }
 
-    private SmaliBuilder(ExtFile smaliDir, File dexFile) {
+    public static void build(ExtFile smaliDir, File dexFile) throws AndrolibException {
+        new SmaliBuilder(smaliDir, dexFile, 0).build();
+    }
+
+    private SmaliBuilder(ExtFile smaliDir, File dexFile, int apiLevel) {
         mSmaliDir = smaliDir;
         mDexFile = dexFile;
+        mApiLevel = apiLevel;
     }
 
     private void build() throws AndrolibException {
         try {
-            DexBuilder dexBuilder = DexBuilder.makeDexBuilder();
+            DexBuilder dexBuilder;
+            if (mApiLevel > 0) {
+                dexBuilder = DexBuilder.makeDexBuilder(Opcodes.forApi(mApiLevel));
+            } else {
+                dexBuilder = DexBuilder.makeDexBuilder();
+            }
 
             for (String fileName : mSmaliDir.getDirectory().getFiles(true)) {
                 buildFile(fileName, dexBuilder);
@@ -77,6 +85,7 @@ public class SmaliBuilder {
 
     private final ExtFile mSmaliDir;
     private final File mDexFile;
+    private int mApiLevel = 0;
 
     private final static Logger LOGGER = Logger.getLogger(SmaliBuilder.class.getName());
 }
