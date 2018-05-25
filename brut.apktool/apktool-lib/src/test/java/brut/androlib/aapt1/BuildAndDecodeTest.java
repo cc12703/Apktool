@@ -49,7 +49,7 @@ public class BuildAndDecodeTest extends BaseTest {
         sTestOrigDir = new ExtFile(sTmpDir, "testapp-orig");
         sTestNewDir = new ExtFile(sTmpDir, "testapp-new");
         LOGGER.info("Unpacking testapp...");
-        TestUtils.copyResourceDir(BuildAndDecodeTest.class, "brut/apktool/aapt1/testapp/", sTestOrigDir);
+        TestUtils.copyResourceDir(BuildAndDecodeTest.class, "aapt1/testapp/", sTestOrigDir);
 
         LOGGER.info("Building testapp.apk...");
         File testApk = new File(sTmpDir, "testapp.apk");
@@ -171,6 +171,13 @@ public class BuildAndDecodeTest extends BaseTest {
         // but such an edge case, want a specific test
         String aaaa = strs.get("long_string6");
         assertEquals(0x8888, aaaa.length());
+    }
+
+    @Test
+    public void storedMp3FilesAreNotCompressedTest() throws BrutException {
+        ExtFile extFile = new ExtFile(sTmpDir, "testapp.apk");
+        Integer built = extFile.getDirectory().getCompressionLevel("res/raw/rain.mp3");
+        assertEquals(new Integer(0), built);
     }
 
     @Test
